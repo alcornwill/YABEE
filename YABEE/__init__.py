@@ -14,24 +14,30 @@ bl_info = {
     "tracker_url": "yabee.googlecode.com",
     "category": "Import-Export"}
 
+import json
+import os
 import bpy
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import *
 from .yabee_libs import egg_writer
 
+POSSIBLE_OBJ_TYPES = ["MESH", "EMPTY", "LAMP"]
+
+
 # --------------- Properties --------------------
 
 class EGGBakeProperty(bpy.types.PropertyGroup):
     ''' Texture baker settings '''
-    res_x = IntProperty(name = "Res. X", default=512)
-    res_y = IntProperty(name = "Res. Y", default=512)
-    export = BoolProperty(default = False)
+    res_x = IntProperty(name="Res. X", default=512)
+    res_y = IntProperty(name="Res. Y", default=512)
+    export = BoolProperty(default=False)
 
     def draw(self, row, name):
         row.prop(self, "res_x")
         row.prop(self, "res_y")
         row.prop(self, "export")
         row.label(name)
+
 
 class EGGAnimationProperty(bpy.types.PropertyGroup):
     ''' One animation record '''
@@ -44,6 +50,7 @@ class EGGAnimationProperty(bpy.types.PropertyGroup):
         return list(bpy.context.scene.yabee_settings.opt_anim_list.anim_collection).index(self)
 
     index = property(__get_idx)
+
 
 class EGGAnimList(bpy.types.PropertyGroup):
     ''' Animations list settings '''
@@ -60,13 +67,13 @@ class EGGAnimList(bpy.types.PropertyGroup):
 class YABEEProperty(bpy.types.PropertyGroup):
     ''' Main YABEE class for store settings '''
     opt_tex_proc = EnumProperty(
-            name="Tex. processing",
-            description="Export all textures as MODULATE or bake texture layers",
-            items=(('SIMPLE', "Simple", "Export all texture layers."),
-                   ('BAKE', "Bake", "Bake textures."),
-                   ('RAW', "Raw", "Raw textures for using with Blender shaders.")),
-            default='SIMPLE',
-            )
+        name="Tex. processing",
+        description="Export all textures as MODULATE or bake texture layers",
+        items=(('SIMPLE', "Simple", "Export all texture layers."),
+               ('BAKE', "Bake", "Bake textures."),
+               ('RAW', "Raw", "Raw textures for using with Blender shaders.")),
+        default='SIMPLE',
+    )
 
     opt_bake_diffuse = PointerProperty(type=EGGBakeProperty)
     opt_bake_normal = PointerProperty(type=EGGBakeProperty)
@@ -75,93 +82,107 @@ class YABEEProperty(bpy.types.PropertyGroup):
     opt_bake_AO = PointerProperty(type=EGGBakeProperty)
     opt_bake_shadow = PointerProperty(type=EGGBakeProperty)
 
-
     opt_tbs_proc = EnumProperty(
-            name="TBS generation",
-            description="Export all textures as MODULATE or bake texture layers",
-            items=(('PANDA', "Panda", "Use egg-trans to calculate TBS (Need installed Panda3D)."),
-                   #('INTERNAL', "Internal", "Use internal YABEE TBS generator"),
-                   ('BLENDER', "Blender", "Use Blender to calculate TBS"),
-                   ('NO', "No", "Do not generate TBS.")),
-            default='NO',
-            )
-
+        name="TBS generation",
+        description="Export all textures as MODULATE or bake texture layers",
+        items=(('PANDA', "Panda", "Use egg-trans to calculate TBS (Need installed Panda3D)."),
+               # ('INTERNAL', "Internal", "Use internal YABEE TBS generator"),
+               ('BLENDER', "Blender", "Use Blender to calculate TBS"),
+               ('NO', "No", "Do not generate TBS.")),
+        default='NO',
+    )
 
     opt_export_uv_as_texture = BoolProperty(
-            name="UV as texture",
-            description="export uv image as texture",
-            default=False,
-            )
+        name="UV as texture",
+        description="export uv image as texture",
+        default=False,
+    )
 
     opt_copy_tex_files = BoolProperty(
-            name="Copy texture files",
-            description="Copy texture files together with EGG",
-            default=True,
-            )
+        name="Copy texture files",
+        description="Copy texture files together with EGG",
+        default=True,
+    )
 
     opt_anims_from_actions = BoolProperty(
-            name="All actions as animations",
-            description="Export an animation for every Action",
-            default=False,
-            )
+        name="All actions as animations",
+        description="Export an animation for every Action",
+        default=False,
+    )
 
     opt_separate_anim_files = BoolProperty(
-            name="Separate animation files",
-            description="Write an animation data into the separate files",
-            default=True,
-            )
+        name="Separate animation files",
+        description="Write an animation data into the separate files",
+        default=True,
+    )
 
     opt_anim_only = BoolProperty(
-            name="Animation only",
-            description="Write only animation data",
-            default=False,
-            )
+        name="Animation only",
+        description="Write only animation data",
+        default=False,
+    )
 
     opt_tex_path = StringProperty(
-            name="Tex. path",
-            description="Path for the copied textures. Relative to the main EGG file dir",
-            default='./tex',
-            )
+        name="Tex. path",
+        description="Path for the copied textures. Relative to the main EGG file dir",
+        default='./tex',
+    )
 
     opt_merge_actor = BoolProperty(
-            name="Merge actor",
-            description="Merge meshes, armatured by single Armature",
-            default=False,
-            )
+        name="Merge actor",
+        description="Merge meshes, armatured by single Armature",
+        default=False,
+    )
 
     opt_apply_modifiers = BoolProperty(
-            name="Apply modifiers",
-            description="Apply modifiers on exported objects (except Armature)",
-            default=True,
-            )
+        name="Apply modifiers",
+        description="Apply modifiers on exported objects (except Armature)",
+        default=True,
+    )
 
     opt_pview = BoolProperty(
-            name="Pview",
-            description="Run pview after exporting",
-            default=False,
-            )
+        name="Pview",
+        description="Run pview after exporting",
+        default=False,
+    )
 
     opt_use_loop_normals = BoolProperty(
-            name="Use custom vertex normals",
-            description="Use loop normals created by applying 'Normal Edit' Modifier as vertex normals.",
-            default=False,
-            )
+        name="Use custom vertex normals",
+        description="Use loop normals created by applying 'Normal Edit' Modifier as vertex normals.",
+        default=False,
+    )
 
     opt_export_pbs = BoolProperty(
-            name="Export PBS",
-            description="Export Physically Based Properties, requires the BAM Exporter",
-            default=False
-        )
+        name="Export PBS",
+        description="Export Physically Based Properties, requires the BAM Exporter",
+        default=False
+    )
 
     opt_force_export_vertex_colors = BoolProperty(
-            name="Force export vertex colors",
-            description="when False, writes only vertex color if polygon material is using it ",
-            default=False,
-            )
+        name="Force export vertex colors",
+        description="when False, writes only vertex color if polygon material is using it ",
+        default=False,
+    )
 
     opt_anim_list = PointerProperty(type=EGGAnimList)
 
-    first_run = BoolProperty(default = True)
+    first_run = BoolProperty(default=True)
+
+    # so if NOT export_scene, exports one .egg, else can export many?
+    opt_export_scene = BoolProperty(
+        name="Export Scene",
+        description="Export extra scene info to json file"
+    )
+
+    # opt_preview_scene = BoolProperty(
+    #     name="Preview .egg.json",
+    #     description="run .egg.json previewer after exporting"
+    # )
+
+    opt_physics_enabled = BoolProperty(
+        name="Physics extension enabled",
+        description="Export blender game physics properties"
+    )
 
     def draw(self, layout):
         row = layout.row()
@@ -185,7 +206,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
             if len(sett.anim_collection):
                 p = sett.anim_collection[sett.active_index]
                 layout.row().prop(p, 'name')
-                row = layout.row(align = True)
+                row = layout.row(align=True)
                 row.prop(p, 'from_frame')
                 row.prop(p, 'to_frame')
                 row.prop(p, 'fps')
@@ -200,31 +221,36 @@ class YABEEProperty(bpy.types.PropertyGroup):
             box = layout.box()
             box.row().prop(self, 'opt_tex_proc')
             if self.opt_tex_proc == 'BAKE':
-                self.opt_bake_diffuse.draw(box.row(align = True), "Diffuse")
-                self.opt_bake_normal.draw(box.row(align = True), "Normal")
-                self.opt_bake_gloss.draw(box.row(align = True), "Gloss")
-                self.opt_bake_glow.draw(box.row(align = True), "Glow")
+                self.opt_bake_diffuse.draw(box.row(align=True), "Diffuse")
+                self.opt_bake_normal.draw(box.row(align=True), "Normal")
+                self.opt_bake_gloss.draw(box.row(align=True), "Gloss")
+                self.opt_bake_glow.draw(box.row(align=True), "Glow")
             if self.opt_tex_proc != 'RAW':
-                self.opt_bake_AO.draw(box.row(align = True), "AO")
-                self.opt_bake_shadow.draw(box.row(align = True), "Shadow")
-            #else:
+                self.opt_bake_AO.draw(box.row(align=True), "AO")
+                self.opt_bake_shadow.draw(box.row(align=True), "Shadow")
+            # else:
             #    layout.row().prop(self, 'opt_tex_proc')
-            #if self.opt_tex_proc == 'SIMPLE':
+            # if self.opt_tex_proc == 'SIMPLE':
             #    box.row().prop(self, 'opt_export_uv_as_texture')
             if self.opt_copy_tex_files or self.opt_tex_proc == 'BAKE':
                 box = layout.box()
                 if self.opt_tex_proc in ('SIMPLE', 'RAW'):
-                    box.row().prop(self, 'opt_copy_tex_files')
-                box.row().prop(self, 'opt_tex_path')
+                    box.prop(self, 'opt_copy_tex_files')
+                box.prop(self, 'opt_tex_path')
             else:
-                layout.row().prop(self, 'opt_copy_tex_files')
-            layout.row().prop(self, 'opt_merge_actor')
-            layout.row().prop(self, 'opt_apply_modifiers')
-            layout.row().prop(self, 'opt_pview')
-            layout.row().prop(self, 'opt_use_loop_normals')
+                layout.prop(self, 'opt_copy_tex_files')
+            layout.prop(self, 'opt_merge_actor')
+            layout.prop(self, 'opt_apply_modifiers')
+            layout.prop(self, 'opt_pview')
+            layout.prop(self, 'opt_use_loop_normals')
 
-            layout.row().prop(self, 'opt_export_pbs')
-            layout.row().prop(self, 'opt_force_export_vertex_colors')
+            layout.prop(self, 'opt_export_pbs')
+            layout.prop(self, 'opt_force_export_vertex_colors')
+
+            box = layout.box()
+            box.prop(self, 'opt_export_scene')
+            # box.prop(self, "single_geom_mode")
+            box.prop(self, 'opt_preview_scene')
 
     def get_bake_dict(self):
         d = {}
@@ -253,10 +279,10 @@ class YABEEProperty(bpy.types.PropertyGroup):
         for name, param in self.opt_anim_list.get_anim_dict().items():
             if param[0] == param[1]:
                 warns.append(('Animation "%s" has same "from" and "to" frames\n' + \
-                             'Keep in mind that "To frame" value is exclusive.\n' + \
-                             'It means that in this case your animation contains\n' + \
-                             'zero of frames. YABEE will automatically add one frame\n' + \
-                             'to the "to" value of "%s" animation.') % (name, name))
+                              'Keep in mind that "To frame" value is exclusive.\n' + \
+                              'It means that in this case your animation contains\n' + \
+                              'zero of frames. YABEE will automatically add one frame\n' + \
+                              'to the "to" value of "%s" animation.') % (name, name))
 
         return warns
 
@@ -291,7 +317,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
         self.first_run = False
 
 
-#def write_some_data(context, filepath, use_some_setting):
+# def write_some_data(context, filepath, use_some_setting):
 #    print("running write_some_data...")
 #    f = open(filepath, 'w')
 #    f.write("Hello World %s" % use_some_setting)
@@ -325,7 +351,7 @@ class WarnDialog(bpy.types.Operator):
                     self.layout.row().label('    ' + line, icon="NONE")
 
     def execute(self, context):
-        #print("Dialog Runs")
+        # print("Dialog Runs")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -350,7 +376,7 @@ class AddAnim(bpy.types.Operator):
 
     def execute(self, context):
         prop = context.scene.yabee_settings.opt_anim_list.anim_collection.add()
-        prop.name = 'Anim'+str(prop.index)
+        prop.name = 'Anim' + str(prop.index)
         return {'FINISHED'}
 
 
@@ -368,7 +394,6 @@ class RemoveAnim(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
 class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
     ''' Export selected to the Panda3D EGG format '''
     bl_idname = "export.panda3d_egg"
@@ -378,12 +403,12 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
     filename_ext = ".egg"
 
     filter_glob = StringProperty(
-            default="*.egg",
-            options={'HIDDEN'},
-            )
+        default="*.egg",
+        options={'HIDDEN'},
+    )
 
-    #@classmethod
-    #def poll(cls, context):
+    # @classmethod
+    # def poll(cls, context):
     #    #return context.active_object is not None
     #    return len(context.selected_objects) > 0
 
@@ -391,23 +416,32 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         import imp
         imp.reload(egg_writer)
         sett = context.scene.yabee_settings
+        if sett.opt_export_scene:
+            scene_path = self.filepath + '.json'
+            self.export_scene(scene_path)
+            # if sett.opt_preview_scene:
+            #     from subprocess import call
+            #     # hmm, how to get path to script? don't want to add to PATH...
+            #     cmd = "..."
+            #     call([cmd, scene_path], shell=True)
+            return {'FINISHED'}
         errors = egg_writer.write_out(self.filepath,
-                            sett.opt_anim_list.get_anim_dict(),
-                            sett.opt_anims_from_actions,
-                            sett.opt_export_uv_as_texture,
-                            sett.opt_separate_anim_files,
-                            sett.opt_anim_only,
-                            sett.opt_copy_tex_files,
-                            sett.opt_tex_path,
-                            sett.opt_tbs_proc,
-                            sett.opt_tex_proc,
-                            sett.get_bake_dict(),
-                            sett.opt_merge_actor,
-                            sett.opt_apply_modifiers,
-                            sett.opt_pview,
-                            sett.opt_use_loop_normals,
-                            sett.opt_export_pbs,
-                            sett.opt_force_export_vertex_colors,)
+                                      sett.opt_anim_list.get_anim_dict(),
+                                      sett.opt_anims_from_actions,
+                                      sett.opt_export_uv_as_texture,
+                                      sett.opt_separate_anim_files,
+                                      sett.opt_anim_only,
+                                      sett.opt_copy_tex_files,
+                                      sett.opt_tex_path,
+                                      sett.opt_tbs_proc,
+                                      sett.opt_tex_proc,
+                                      sett.get_bake_dict(),
+                                      sett.opt_merge_actor,
+                                      sett.opt_apply_modifiers,
+                                      sett.opt_pview,
+                                      sett.opt_use_loop_normals,
+                                      sett.opt_export_pbs,
+                                      sett.opt_force_export_vertex_colors,)
         if not errors:
             return {'FINISHED'}
         else:
@@ -421,7 +455,6 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
             self.report({'ERROR'}, rep_msg)
             return {'CANCELLED'}
 
-
     def invoke(self, context, evt):
         if context.scene.yabee_settings.first_run:
             context.scene.yabee_settings.reset_defaults()
@@ -433,7 +466,52 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
             self.layout.row().operator('export.yabee_warnings', icon='ERROR', text='Warning!')
         context.scene.yabee_settings.draw(self.layout)
 
+    def export_scene(self, scene_path):
+        # todo probably fix the weird way he's done this...
+        from YABEE.ext import extensions
+        extensions = [ext for ext in extensions if ext.enabled]
+        flags = []
 
+        export_dict = {'scene': {},
+                       'objects': {},
+                       'assets': {},
+                       'materials': {}
+                       }
+
+        for e in extensions:
+            if e.target == 'prepare':
+                e.invoke(export_dict, bpy.context, self.filepath, flags)
+
+        for e in extensions:
+            if e.target == 'scene':
+                e.invoke(export_dict, export_dict['scene'], bpy.context, self.filepath, flags)
+            elif e.target == 'material':
+                for material in bpy.data.materials:
+                    if material.users > 0:
+                        mat_dict = {}
+                        if material.name in export_dict['materials']:
+                            mat_dict = export_dict['materials'][material.name]
+                        e.invoke(export_dict, mat_dict, material, bpy.context, self.filepath, flags)
+                        if mat_dict:
+                            export_dict['materials'][material.name] = mat_dict
+            elif e.target == 'object':
+                for obj in bpy.context.scene.objects:
+                    obj_dict = {}
+                    if obj.name in export_dict['objects']:
+                        obj_dict = export_dict['objects'][obj.name]
+                    e.invoke(export_dict, obj_dict, obj, bpy.context, self.filepath, flags)
+                    if obj_dict:
+                        export_dict['objects'][obj.name] = obj_dict
+            elif e.target not in ('prepare', 'finishing'):
+                print('ERROR:EXTENSION: unknown target "%s"' % e.target)
+
+        for e in extensions:
+            if e.target == 'finishing':
+                e.invoke(export_dict, bpy.context, self.filepath, flags)
+
+        f = open(scene_path, 'w')
+        f.write(json.dumps(export_dict, indent=4, sort_keys=True))
+        f.close()
 
 def menu_func_export(self, context):
     self.layout.operator(ExportPanda3DEGG.bl_idname, text="Panda3D (.egg)")
@@ -456,7 +534,7 @@ def register():
     bpy.types.Texture.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
     bpy.types.Armature.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
     bpy.types.Curve.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
-    #bpy.types.ShapeKey.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
+    # bpy.types.ShapeKey.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
     bpy.types.Key.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
     bpy.types.Image.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
     bpy.types.Bone.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
@@ -464,18 +542,17 @@ def register():
 
     bpy.types.INFO_MT_file_export.append(menu_func_export)
     # Add link for export function to use in another addon
-    __builtins__['p3d_egg_export'] = egg_writer.write_out
+    # __builtins__['p3d_egg_export'] = egg_writer.write_out
 
 
 def unregister():
     bpy.utils.unregister_module(__name__)
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
-    del(__builtins__['p3d_egg_export'])
-
+    del (__builtins__['p3d_egg_export'])
 
 
 if __name__ == "__main__":
     register()
 
     # test call
-    #bpy.ops.export.panda3d_egg('INVOKE_DEFAULT')
+    # bpy.ops.export.panda3d_egg('INVOKE_DEFAULT')
