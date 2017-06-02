@@ -185,11 +185,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
         description="base_objects extension enabled (lamp, camera, mesh, speaker)",
         default=1
     )
-    base_scene_ext_enabled = BoolProperty(
-        name="world, .egg",
-        description="base_scene extension enabled (world, .egg)",
-        default=1
-    )
+    base_scene_ext_enabled = 1
     base_shaders_ext_enabled = BoolProperty(
         name="shaders + materials",
         description="base_shaders extension enabled (shaders, materials)"
@@ -282,7 +278,6 @@ class YABEEProperty(bpy.types.PropertyGroup):
             col = box.column()
             col.enabled = self.opt_export_scene
             col.prop(self, 'base_objects_ext_enabled')
-            col.prop(self, 'base_scene_ext_enabled')
             col.prop(self, 'base_shaders_ext_enabled')
             col.prop(self, 'phys_material_ext_enabled')
             col.prop(self, 'phys_object_ext_enabled')
@@ -505,15 +500,22 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
 
     def export_scene(self, scene_path, sett):
         from YABEE.ext import extensions
-        extensions = [ext
-                      for ext in extensions
-                      if getattr(sett, ext.__name__.split('.')[-1] + "_ext_enabled")] # hmm
+        ext_names = []
+        extensions_ = []
+        for ext in extensions:
+            name = ext.__name__.split('.')[-1]
+            if not getattr(sett, name + "_ext_enabled"): continue
+            ext_names.append(name)
+            extensions_.append(ext)
         flags = []
-        export_dict = {'scene': {},
-                       'objects': {},
-                       'materials': {}
-                       }
-        for e in extensions:
+        export_dict = {
+            'scene': {
+                'extensions': ext_names
+            },
+            'objects': {},
+            'materials': {}
+        }
+        for e in extensions_:
             e.invoke(export_dict, self.filepath, flags)
         f = open(scene_path, 'w')
         f.write(json.dumps(export_dict, indent=4, sort_keys=True))

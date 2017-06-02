@@ -7,7 +7,6 @@ def invoke(data, fname, flags=None):
     target_data = data['scene']
     from ..yabee_libs.egg_writer import write_out
     target_data['comment'] = 'Export from Blender ' + bpy.app.version_string
-    target_data['b_version'] = bpy.app.version
 
     if bpy.context.scene.world:
         target_data['ambient_color'] = list(bpy.context.scene.world.ambient_color)

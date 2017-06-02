@@ -12,7 +12,7 @@ def convert_lamp(obj):
     lamp = bpy.data.objects[obj.name].data
     data_dict = {}
     data_dict['lamp_type'] = lamp.type
-    data_dict['lamp_color'] = list(lamp.color)
+    data_dict['lamp_color'] = [*list(lamp.color), 1.0]
     data_dict['energy'] = lamp.energy
     if lamp.type in ['SUN', 'SPOT']:
         if lamp.use_shadow:
