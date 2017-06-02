@@ -2,7 +2,6 @@ import sys, os
 
 order = 1
 target = 'object'
-enabled = True
 
 import bpy
 from mathutils import Matrix
@@ -60,31 +59,15 @@ def convert_camera(obj):
 
 obj_proc = {'LAMP': convert_lamp,
             'SPEAKER': convert_speaker,
-            'MESH': convert_mesh,
+            # 'MESH': convert_mesh,  # why would you want this. OH for phys_object?
             'CAMERA': convert_camera
             }
 
 
-def invoke(all_data, target_data, obj, context, fname, flags=None):
-    if flags:
-        pass
-        # if obj.type == 'MESH':
-        #     path = os.path.join(os.path.split(fname)[0], 'res', obj.name + '.egg')
-        #     p3d_egg_export(path, {}, 0, 0, 0, 0, 1, 'tex', 'BLENDER', 'RAW', {}, 0, 1, 0, [obj.name,])
-    mat = []
-    for y in obj.matrix_world.col:
-        for x in y[:]:
-            mat.append(x)
-    target_data['name'] = obj.name
-    target_data['mat'] = mat
-    if obj.parent:
-        target_data['parent'] = obj.parent.name
-    if 'asset' in obj:
-        target_data['type'] = 'ASSET'
-        target_data['ref'] = obj['asset_name']
-    elif not 'asset_child' in obj:
-        target_data['type'] = obj.type
+def invoke(data, fname, flags=None):
+    for obj in bpy.context.scene.objects:
         if obj.type in obj_proc.keys():
+            target_data = {} if obj.name not in data['objects'] else data['objects'][obj.name]
+            target_data['type'] = obj.type
             target_data.update(obj_proc[obj.type](obj))
-        
-    #return target_data
+            data['objects'][obj.name] = target_data

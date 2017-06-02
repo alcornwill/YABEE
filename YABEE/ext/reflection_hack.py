@@ -3,7 +3,6 @@ from .utils import save_image, safe_var_name
 
 order = 50
 target = 'material'
-enabled = True
 
 def invoke(all_data, target_data, material, context, fname, flags=None):
     tex_count = 0

@@ -179,9 +179,36 @@ class YABEEProperty(bpy.types.PropertyGroup):
     #     description="run .egg.json previewer after exporting"
     # )
 
-    opt_physics_enabled = BoolProperty(
-        name="Physics extension enabled",
-        description="Export blender game physics properties"
+    # should allow enable individual types?
+    base_objects_ext_enabled = BoolProperty(
+        name="lamp, camera, mesh, speaker",
+        description="base_objects extension enabled (lamp, camera, mesh, speaker)",
+        default=1
+    )
+    base_scene_ext_enabled = BoolProperty(
+        name="world, .egg",
+        description="base_scene extension enabled (world, .egg)",
+        default=1
+    )
+    base_shaders_ext_enabled = BoolProperty(
+        name="shaders + materials",
+        description="base_shaders extension enabled (shaders, materials)"
+    )
+    phys_material_ext_enabled = BoolProperty(
+        name="physics materials",
+        description="phys_material extension enabled"
+    )
+    phys_object_ext_enabled = BoolProperty(
+        name="physics object",
+        description="phys_object extension enabled"
+    )
+    phys_scene_ext_enabled = BoolProperty(
+        name="physics scene",
+        description="phys_scene extension enabled"
+    )
+    reflection_hack_ext_enabled = BoolProperty(
+        name="environment map hack",
+        description="reflection_hack extension enabled (environment map)"
     )
 
     def draw(self, layout):
@@ -250,7 +277,17 @@ class YABEEProperty(bpy.types.PropertyGroup):
             box = layout.box()
             box.prop(self, 'opt_export_scene')
             # box.prop(self, "single_geom_mode")
-            box.prop(self, 'opt_preview_scene')
+            # box.prop(self, 'opt_preview_scene')
+            box.label("Extensions:")
+            col = box.column()
+            col.enabled = self.opt_export_scene
+            col.prop(self, 'base_objects_ext_enabled')
+            col.prop(self, 'base_scene_ext_enabled')
+            col.prop(self, 'base_shaders_ext_enabled')
+            col.prop(self, 'phys_material_ext_enabled')
+            col.prop(self, 'phys_object_ext_enabled')
+            col.prop(self, 'phys_scene_ext_enabled')
+            col.prop(self, 'reflection_hack_ext_enabled')
 
     def get_bake_dict(self):
         d = {}
@@ -418,13 +455,13 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         sett = context.scene.yabee_settings
         if sett.opt_export_scene:
             scene_path = self.filepath + '.json'
-            self.export_scene(scene_path)
+            self.export_scene(scene_path, sett)
             # if sett.opt_preview_scene:
             #     from subprocess import call
             #     # hmm, how to get path to script? don't want to add to PATH...
             #     cmd = "..."
             #     call([cmd, scene_path], shell=True)
-            return {'FINISHED'}
+            # return {'FINISHED'}
         errors = egg_writer.write_out(self.filepath,
                                       sett.opt_anim_list.get_anim_dict(),
                                       sett.opt_anims_from_actions,
@@ -441,7 +478,7 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
                                       sett.opt_pview,
                                       sett.opt_use_loop_normals,
                                       sett.opt_export_pbs,
-                                      sett.opt_force_export_vertex_colors,)
+                                      sett.opt_force_export_vertex_colors, )
         if not errors:
             return {'FINISHED'}
         else:
@@ -466,52 +503,22 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
             self.layout.row().operator('export.yabee_warnings', icon='ERROR', text='Warning!')
         context.scene.yabee_settings.draw(self.layout)
 
-    def export_scene(self, scene_path):
-        # todo probably fix the weird way he's done this...
+    def export_scene(self, scene_path, sett):
         from YABEE.ext import extensions
-        extensions = [ext for ext in extensions if ext.enabled]
+        extensions = [ext
+                      for ext in extensions
+                      if getattr(sett, ext.__name__.split('.')[-1] + "_ext_enabled")] # hmm
         flags = []
-
         export_dict = {'scene': {},
                        'objects': {},
-                       'assets': {},
                        'materials': {}
                        }
-
         for e in extensions:
-            if e.target == 'prepare':
-                e.invoke(export_dict, bpy.context, self.filepath, flags)
-
-        for e in extensions:
-            if e.target == 'scene':
-                e.invoke(export_dict, export_dict['scene'], bpy.context, self.filepath, flags)
-            elif e.target == 'material':
-                for material in bpy.data.materials:
-                    if material.users > 0:
-                        mat_dict = {}
-                        if material.name in export_dict['materials']:
-                            mat_dict = export_dict['materials'][material.name]
-                        e.invoke(export_dict, mat_dict, material, bpy.context, self.filepath, flags)
-                        if mat_dict:
-                            export_dict['materials'][material.name] = mat_dict
-            elif e.target == 'object':
-                for obj in bpy.context.scene.objects:
-                    obj_dict = {}
-                    if obj.name in export_dict['objects']:
-                        obj_dict = export_dict['objects'][obj.name]
-                    e.invoke(export_dict, obj_dict, obj, bpy.context, self.filepath, flags)
-                    if obj_dict:
-                        export_dict['objects'][obj.name] = obj_dict
-            elif e.target not in ('prepare', 'finishing'):
-                print('ERROR:EXTENSION: unknown target "%s"' % e.target)
-
-        for e in extensions:
-            if e.target == 'finishing':
-                e.invoke(export_dict, bpy.context, self.filepath, flags)
-
+            e.invoke(export_dict, self.filepath, flags)
         f = open(scene_path, 'w')
         f.write(json.dumps(export_dict, indent=4, sort_keys=True))
         f.close()
+
 
 def menu_func_export(self, context):
     self.layout.operator(ExportPanda3DEGG.bl_idname, text="Panda3D (.egg)")

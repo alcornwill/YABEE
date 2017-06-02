@@ -2,7 +2,6 @@ import bpy, gpu, os, re, sys, shutil, bpy_extras, math
 
 order = 1
 target = 'material'
-enabled = False  # disabled because it's broken (or I'm using it wrong)
 
 SHARED_TYPES = {gpu.GPU_DYNAMIC_LAMP_DYNVEC:'vec',
                 gpu.GPU_DYNAMIC_LAMP_DYNCO:'co',
@@ -266,55 +265,53 @@ def replace_names_for_shared_uniforms(sha):
             sha['fragment'] = re.sub(unf['varname']+'([^a-zA-Z0-9_]+)', new_varname+'\g<1>', sha['fragment'])
             sha['uniforms'][i]['varname'] = new_varname
 
-def invoke(all_data, target_data, material, context, fname, flags=None):
-    dirname = os.path.dirname(fname)
-    if 'paths' in all_data['scene']:
-        dirname = os.path.join(dirname, all_data['scene']['paths']['materials'])
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    sha = gpu.export_shader(context.scene, material)
-    add_lamp_name_for_unf_type16(sha)
-    add_environment_values_for_unf_type21_28(sha, material, context.scene.world)
-    find_and_correct_spot_light_uniforms(material, sha)
-    replace_names_for_shared_uniforms(sha)
-    replace_common_uniforms(sha)
-    replace_sampler_for_textures(material, sha)
-    replace_attributes(material, sha)
-    f = open(os.path.join(dirname, material.name + '.vert'), 'w')
-    f.write(sha['vertex'])
-    f.close()
-    f = open(os.path.join(dirname, material.name + '.frag'), 'w')
-    f.write(sha['fragment'])
-    f.close()
-    target_data['vert'] = material.name + '.vert'
-    target_data['frag'] = material.name + '.frag'
-    target_data['name'] = material.name
-    uniforms = []
-    for unf in sha['uniforms']:
-        uniform = {}
-        for key, val in tuple(unf.items()):
-            if key == 'lamp':
-                val = val.name
-            elif key == 'image':
-                if unf['type'] != 'p3d_texture':
-                    saved_img = save_image(val, fname, all_data['scene']['paths']['images'])
-                    #val = saved_img
-                    val = os.path.split(saved_img)[1]
-                else:
-                    val = ''
-                #val = os.path.split(val.filepath)[1]
-            elif key == 'texpixels':
-                #val = ''
-                fname = material.name + '-' + unf['varname'] + '.dat'
-                f = open(os.path.join(dirname, fname), 'wb')
-                f.write(val)
-                f.close()
-                #val = os.path.join(all_data['scene']['paths']['materials'], 
-                #                   fname).replace('\\','/')
-                val = fname
+def invoke(data, fname, flags=None):
+    for material in bpy.data.materials:
+        target_data = {} if material.name not in data['materials'] else data['materials'][material.name]
+        dirname = os.path.dirname(fname)
+        sha = gpu.export_shader(context.scene, material)
+        add_lamp_name_for_unf_type16(sha)
+        add_environment_values_for_unf_type21_28(sha, material, context.scene.world)
+        find_and_correct_spot_light_uniforms(material, sha)
+        replace_names_for_shared_uniforms(sha)
+        replace_common_uniforms(sha)
+        replace_sampler_for_textures(material, sha)
+        replace_attributes(material, sha)
+        f = open(os.path.join(dirname, material.name + '.vert'), 'w')
+        f.write(sha['vertex'])
+        f.close()
+        f = open(os.path.join(dirname, material.name + '.frag'), 'w')
+        f.write(sha['fragment'])
+        f.close()
+        target_data['vert'] = material.name + '.vert'
+        target_data['frag'] = material.name + '.frag'
+        target_data['name'] = material.name
+        uniforms = []
+        for unf in sha['uniforms']:
+            uniform = {}
+            for key, val in tuple(unf.items()):
+                if key == 'lamp':
+                    val = val.name
+                elif key == 'image':
+                    if unf['type'] != 'p3d_texture':
+                        saved_img = save_image(val, fname, data['scene']['paths']['images'])
+                        #val = saved_img
+                        val = os.path.split(saved_img)[1]
+                    else:
+                        val = ''
+                    #val = os.path.split(val.filepath)[1]
+                elif key == 'texpixels':
+                    #val = ''
+                    fname = material.name + '-' + unf['varname'] + '.dat'
+                    f = open(os.path.join(dirname, fname), 'wb')
+                    f.write(val)
+                    f.close()
+                    #val = os.path.join(all_data['scene']['paths']['materials'],
+                    #                   fname).replace('\\','/')
+                    val = fname
 
 
-            if not key in uniform.keys():
-                uniform[key] = val
-        uniforms.append(uniform)
-    target_data['uniforms'] = uniforms
+                if not key in uniform.keys():
+                    uniform[key] = val
+            uniforms.append(uniform)
+        target_data['uniforms'] = uniforms

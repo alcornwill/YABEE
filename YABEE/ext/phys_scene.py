@@ -1,6 +1,5 @@
 order = 2
 target = 'scene'
-enabled = False
 
 def invoke(all_data, target_data, context, fname, flags=None):
     target_data['phys_gravity'] = context.scene.game_settings.physics_gravity

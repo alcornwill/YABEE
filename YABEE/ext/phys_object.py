@@ -3,7 +3,6 @@ from math import pi
 
 order = 100
 target = 'object'
-enabled = False
 
 def invoke(all_data, target_data, obj, context, fname, flags=None):
     target_data['phys_type'] = obj.game.physics_type
