@@ -337,7 +337,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
         self.opt_copy_tex_files = True
         self.opt_separate_anim_files = True
         self.opt_anim_only = False
-        self.opt_tex_path = './tex'
+        self.opt_tex_path = './'
         self.opt_merge_actor = True
         self.opt_apply_modifiers = True
         self.opt_pview = False
