@@ -125,7 +125,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
     opt_tex_path = StringProperty(
         name="Tex. path",
         description="Path for the copied textures. Relative to the main EGG file dir",
-        default='./tex',
+        default='./',
     )
 
     opt_merge_actor = BoolProperty(
