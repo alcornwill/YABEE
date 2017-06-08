@@ -1650,6 +1650,7 @@ def write_out(fname, anims, from_actions, uv_img_as_tex, sep_anim, a_only,
                 fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
 
                 for action in bpy.data.actions:
+                    if not action.use_fake_user: continue  # don't export if not fake user
                     frange = action.frame_range
                     ac = AnimCollector(obj_list, int(frange[0]), int(frange[1]),
                                        fps, action.name, action)
