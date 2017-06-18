@@ -16,6 +16,7 @@ bl_info = {
 
 import json
 import os
+from os.path import join, dirname
 import bpy
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import *
@@ -448,6 +449,7 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         import imp
         imp.reload(egg_writer)
         sett = context.scene.yabee_settings
+        self.export_poselibs() # hacking this here for now
         if sett.opt_export_scene:
             scene_path = self.filepath + '.json'
             self.export_scene(scene_path, sett)
@@ -521,6 +523,20 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         f.write(json.dumps(export_dict, indent=4, sort_keys=True))
         f.close()
 
+    def export_poselibs(self):
+        # todo allow disable
+        dir = dirname(self.filepath)
+        def fwrite(fname, text):
+            with open(join(dir, fname), 'w') as f:
+                f.write(text)
+
+        for obj in bpy.data.objects:
+            lib = obj.pose_library
+            if lib is not None:
+                text = ""
+                for marker in lib.pose_markers:
+                    text += "{}\n".format(marker.name)
+                fwrite("{}.{}.txt".format(obj.name, lib.name), text)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportPanda3DEGG.bl_idname, text="Panda3D (.egg)")
@@ -531,6 +547,7 @@ def register():
 
     # Good or bad, but I'll store settings in the scene
     bpy.types.Scene.yabee_settings = PointerProperty(type=YABEEProperty)
+    # todo do we really need this?
     # Hack again. I use custom property to be able to get basic
     # object name in the copy of the scene.
     bpy.types.Object.yabee_name = StringProperty(name="YABEE_Name", default="Unknown")
