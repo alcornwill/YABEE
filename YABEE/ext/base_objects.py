@@ -65,7 +65,7 @@ obj_proc = {'LAMP': convert_lamp,
 
 
 def invoke(data, fname, flags=None):
-    for obj in bpy.context.scene.objects:
+    for obj in bpy.context.selected_objects:
         if obj.type in obj_proc.keys():
             target_data = {} if obj.name not in data['objects'] else data['objects'][obj.name]
             target_data['type'] = obj.type
