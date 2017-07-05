@@ -106,7 +106,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
     )
 
     opt_anims_from_actions = BoolProperty(
-        name="All linked actions as animations",
+        name="All actions as animations",
         description="Export an animation for every Action",
         default=False,
     )

@@ -423,7 +423,7 @@ class TextureBaker():
     def _clear_images(self):
         for iname in self.rendered_images.values():
             img = bpy.data.images[iname]
-            img.user_clear() # todo user_clear bad?
+            img.user_clear()
             bpy.data.images.remove(img)
         self.rendred_images = []
 
