@@ -55,7 +55,7 @@ class Group:
         if arm_owner and obj.__class__ == bpy.types.Bone:
             self.arm_owner = arm_owner
         if self.object and self.object.__class__ != bpy.types.Bone:
-            if self.object.type == 'MESH':
+            if self.object.type == 'MESH' and not self.object.hide_render:
                 if 'ARMATURE' in [m.type for m in self.object.modifiers]:
                     self._yabee_object = EGGActorObjectData(self.object)
                 else:

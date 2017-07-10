@@ -207,6 +207,11 @@ class YABEEProperty(bpy.types.PropertyGroup):
         name="environment map hack",
         description="reflection_hack extension enabled (environment map)"
     )
+    colliders_ext_enabled = BoolProperty(
+        name="colliders",
+        description="colliders extension enabled",
+        default=1
+    )
 
     def draw(self, layout):
         row = layout.row()
@@ -284,6 +289,7 @@ class YABEEProperty(bpy.types.PropertyGroup):
             col.prop(self, 'phys_object_ext_enabled')
             col.prop(self, 'phys_scene_ext_enabled')
             col.prop(self, 'reflection_hack_ext_enabled')
+            col.prop(self, 'colliders_ext_enabled')
 
     def get_bake_dict(self):
         d = {}
@@ -515,7 +521,8 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
                 'extensions': ext_names
             },
             'objects': {},
-            'materials': {}
+            'materials': {},
+            'colliders': {}
         }
         for e in extensions_:
             e.invoke(export_dict, self.filepath, flags)
