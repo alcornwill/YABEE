@@ -10,7 +10,8 @@ def invoke(data, fname, flags=None):
             collider = {}
             collider["type"] = obj.game.collision_bounds_type
             collider["bounds"] = list(obj.dimensions)
-            collider["from"] = list(obj.game.collision_group)
-            collider["into"] = list(obj.game.collision_mask)
+            # NOTE: blender doesn't let you have no collision group/mask, so group 16 reserved for 'allOff'
+            collider["from"] = list(obj.game.collision_group)[:-1]
+            collider["into"] = list(obj.game.collision_mask)[:-1]
             # todo use groups for compound colliders?
             data["colliders"][obj.name] = collider
