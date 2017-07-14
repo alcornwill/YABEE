@@ -548,6 +548,71 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
 def menu_func_export(self, context):
     self.layout.operator(ExportPanda3DEGG.bl_idname, text="Panda3D (.egg)")
 
+def get_property_index(properties, name):
+    for i, prop in enumerate(properties):
+        if prop.name == name:
+            return i
+
+def remove_tag(properties, name):
+    if name in properties:
+        index = get_property_index(properties, name)
+        bpy.ops.object.game_property_remove(index=index)
+
+def set_tag(properties, name, value):
+    bpy.ops.object.game_property_new(name=name,type='STRING')
+    prop = properties[name]
+    prop.value = value
+
+def select_only(obj):
+    # this is made annoying because of active object
+    prev = bpy.context.scene.objects.active
+    bpy.context.scene.objects.active = obj
+    prev.select = False
+
+class YABEESetTagOperator(bpy.types.Operator):
+    bl_idname = "object.yabee_set_tag"
+    bl_label = "YABEE Set Tag"
+
+    tagname = bpy.props.StringProperty(name="Tag Name")
+    tagvalue = bpy.props.StringProperty(name="Tag Value")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+
+    def execute(self, context):
+        objs = list(bpy.context.selected_objects)
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in objs:
+            select_only(obj)
+            remove_tag(obj.game.properties, self.tagname)
+            set_tag(obj.game.properties, self.tagname, self.tagvalue)
+        return {"FINISHED"}
+
+class YABEERemoveTagOperator(bpy.types.Operator):
+    bl_idname = "object.yabee_remove_tag"
+    bl_label = "YABEE Remove Tag"
+
+    tagname = bpy.props.StringProperty(name="Tag Name")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+
+    def execute(self, context):
+        objs = list(bpy.context.selected_objects)
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in objs:
+            select_only(obj)
+            remove_tag(obj.game.properties, self.tagname)
+        return {"FINISHED"}
+
 
 def register():
     bpy.utils.register_module(__name__)
@@ -581,7 +646,7 @@ def register():
 def unregister():
     bpy.utils.unregister_module(__name__)
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
-    del (__builtins__['p3d_egg_export'])
+    # del (__builtins__['p3d_egg_export'])
 
 
 if __name__ == "__main__":
