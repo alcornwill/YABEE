@@ -457,7 +457,7 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         sett = context.scene.yabee_settings
         self.export_poselibs() # hacking this here for now
         if sett.opt_export_scene:
-            scene_path = self.filepath + '.json'
+            scene_path = self.filepath.replace('.egg', '.json')
             self.export_scene(scene_path, sett)
             # if sett.opt_preview_scene:
             #     from subprocess import call
