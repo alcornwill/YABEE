@@ -531,19 +531,17 @@ class ExportPanda3DEGG(bpy.types.Operator, ExportHelper):
         f.close()
 
     def export_poselibs(self):
-        # todo allow disable
-        dir = dirname(self.filepath)
+        d = dirname(self.filepath)
         def fwrite(fname, text):
-            with open(join(dir, fname), 'w') as f:
+            with open(join(d, fname), 'w') as f:
                 f.write(text)
 
-        for obj in bpy.data.objects:
-            lib = obj.pose_library
-            if lib is not None:
-                text = ""
-                for marker in lib.pose_markers:
-                    text += "{}\n".format(marker.name)
-                fwrite("{}.{}.txt".format(obj.name, lib.name), text)
+        for act in bpy.data.actions:
+            if len(act.pose_markers) == 0: continue
+            text = ""
+            for marker in act.pose_markers:
+                text += "{}\t{}\n".format(marker.name, marker.frame)
+            fwrite("{}.txt".format(act.name), text)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportPanda3DEGG.bl_idname, text="Panda3D (.egg)")
